@@ -15,7 +15,7 @@ const StartServer = async (): Promise<void> => {
 
   //   const channel = await CreateChannel()
 
-  await expressApp(app, 'channel')
+  await expressApp(app)
 
   app
     .listen(PORT, () => {

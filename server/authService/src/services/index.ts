@@ -1,3 +1,3 @@
-import CustomerService from './customer-service'
+import AuthService from './user-service'
 
-export { CustomerService }
+export { AuthService }

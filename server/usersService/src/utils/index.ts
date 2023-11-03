@@ -42,13 +42,11 @@ export const ValidatePassword = async (
  * @param roles - An array of numbers representing the user's roles
  * @returns A Promise that resolves to an access token string
  */
-export const signAccessToken = async (
-  userId: string,
-): Promise<string> => {
+export const signAccessToken = async (userId: string): Promise<string> => {
   return await new Promise((resolve, reject) => {
     // Create the payload
     const payload = {
-      id: userId,
+      id: userId
     }
 
     // Set the options
@@ -60,9 +58,7 @@ export const signAccessToken = async (
     jwt.sign(payload, ACCESS_TOKEN_SECRET, options, (err, token) => {
       if (err != null) {
         // If there is an error, reject with an internal server error
-        reject(
-          createError.InternalServerError('Unable to grant secure access')
-        )
+        reject(createError.InternalServerError('Unable to grant secure access'))
         return
       }
       // Otherwise, resolve with the token string
@@ -77,10 +73,7 @@ export const signAccessToken = async (
  * @param roles - The roles of the user.
  * @returns The result of storing the generated token.
  */
-export const signRefreshToken = async (
-  userId: string,
-  roles: number[]
-): Promise<string> => {
+export const signRefreshToken = async (userId: string): Promise<string> => {
   // return a promise that generates a signed refresh token and stores it in the key-value store
   return await new Promise((resolve, reject) => {
     // create a new instance of Store
@@ -91,22 +84,32 @@ export const signRefreshToken = async (
 
     // generate the token using the payload, options, and secret
     jwt.sign(payload, REFRESH_TOKEN_SECRET, options, (err, refToken) => {
-      if (err != null) {
+      if (err) {
         // if there was an error generating the token, reject with an internal server error
-        reject(createError.InternalServerError('Unable to eastablish a secure connection'))
+        reject(
+          createError.InternalServerError(
+            'Unable to eastablish a secure connection'
+          )
+        )
         return
       }
 
-      // store the token in the key-value store
-      void store.setStore(`${userId}`, refToken, (err) => {
-        if (err != null) {
-          // if there was an error storing the token, reject with an internal server error
-          reject(createError.InternalServerError('Ops! something went wrong. Please try again'))
-          return
-        }
-        // if the token was stored successfully, resolve with the result
-        resolve(refToken as string)
-      })
+      if (refToken) {
+        // store the token in the key-value store
+        void store.setStore(`${userId}`, refToken, (err) => {
+          if (err != null) {
+            // if there was an error storing the token, reject with an internal server error
+            reject(
+              createError.InternalServerError(
+                'Ops! something went wrong. Please try again'
+              )
+            )
+            return
+          }
+          // if the token was stored successfully, resolve with the result
+          resolve(refToken as string)
+        })
+      }
     })
   })
 }

@@ -10,7 +10,7 @@ interface NewUserProps {
   phoneNumber: string
 }
 // Dealing with data base operations
-class CustomerRepository {
+class UserRepository {
   async AddUser({
     firstName,
     lastName,
@@ -18,18 +18,25 @@ class CustomerRepository {
     email,
     phoneNumber,
     userName
-  }: NewUserProps): Promise<IAuth> {
-    const User = new AuthModel({
-      firstName,
-      lastName,
-      password,
-      email,
-      phoneNumber,
-      userName
+  }: NewUserProps): Promise<IAuth | null> {
+    const isExistingUser = await this.FindUser({
+      emailOrPhoneNumber: email ?? phoneNumber
     })
 
-    const AuthResult = await User.save()
-    return AuthResult
+    if (!isExistingUser) {
+      const User = new AuthModel({
+        firstName,
+        lastName,
+        password,
+        email,
+        phoneNumber,
+        userName
+      })
+
+      const AuthResult = await User.save()
+      return AuthResult
+    }
+    return null
   }
 
   async FindUser({
@@ -44,4 +51,4 @@ class CustomerRepository {
   }
 }
 
-export default CustomerRepository
+export default UserRepository

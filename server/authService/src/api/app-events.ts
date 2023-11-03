@@ -1,7 +1,8 @@
 import { NextFunction, Request, Response, Express } from 'express'
 import createHttpError from 'http-errors'
 
-import { CustomerService } from '@/services'
+import { AuthService } from '@/services'
+import { UserDataProps } from '@/services/user-service'
 
 /**
  * Initializes the app events endpoint.
@@ -9,20 +10,20 @@ import { CustomerService } from '@/services'
  * @param {Express} app - The Express application.
  */
 export const appEvents = (app: Express): void => {
-  const service: CustomerService = new CustomerService()
+  const service = new AuthService()
 
   app.post(
-    '/app-events',
+    '/webhook',
     async (req: Request, res: Response, next: NextFunction) => {
       try {
-        const payload = req.body
+        const payload: {event: string; userData: UserDataProps} = req.body
 
-        if (payload?.data) {
+        if (payload?.userData) {
           //handle subscribe events
           service.SubscribeEvents(payload)
 
           console.log('\n===== User Event Received =====')
-          res.json(payload)
+          res.status(204).json(payload)
         } else throw createHttpError.BadRequest('Invalid payload')
       } catch (error) {
         next(error)

@@ -1,4 +1,4 @@
-import { customerAPI } from './customer-api'
+import { AuthAPI } from './user-api'
 import { appEvents } from './app-events'
 
-export { customerAPI, appEvents }
+export { AuthAPI, appEvents }

@@ -42,7 +42,7 @@ class Store {
     if (!client.isOpen) startConnection()
   }
 
-  protected async setStore(
+  async setStore(
     userId: string,
     refToken: string,
     callback?: (err: Error | null, result: string | null) => void
@@ -56,7 +56,7 @@ class Store {
       .catch((err) => callback && callback(err, null))
   }
 
-  protected async getStore(
+  async getStore(
     key: string,
     callback?: (err: Error | null, result: string | null) => void
   ) {
