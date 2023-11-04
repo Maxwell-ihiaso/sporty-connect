@@ -8,6 +8,15 @@ import createHttpError from 'http-errors'
 
 import { type CustomRequest, verifyAccessToken } from './middlewares'
 import { AuthService } from '@/services'
+import axios from 'axios'
+import { publishEmailEvent } from '@/utils'
+
+
+export enum EMAIL_TYPE {
+  SEND_EMAIL_OTP = 'SEND_EMAIL_OTP',
+  SEND_WELCOME_EMAIL = 'SEND_WELCOME_EMAIL'
+}
+
 
 export const AuthAPI = (app: Express): void => {
   const service = new AuthService()
@@ -16,11 +25,35 @@ export const AuthAPI = (app: Express): void => {
     const { email, password, firstName, lastName, phoneNumber, userName } =
       req.body
 
+    if (
+      !email ||
+      !password ||
+      !firstName ||
+      !lastName ||
+      !phoneNumber ||
+      !userName
+    ) {
+      throw createHttpError.BadRequest(
+        'email, password, firstName, lastName, phoneNumber, userName is required'
+      )
+    }
+
     service
       .SignUp({ email, password, firstName, lastName, phoneNumber, userName })
       .then((data) => {
-        if (data) return res.status(200).json(data)
-        else throw createHttpError.Conflict('User is already registered')
+        if (data) {
+          publishEmailEvent({
+            event: EMAIL_TYPE.SEND_EMAIL_OTP,
+            userData: {
+              to: email,
+              emailType: EMAIL_TYPE.SEND_EMAIL_OTP,
+              firstName,
+              otp: 12345
+            }
+          })
+
+          return res.status(200).json(data)
+        } else throw createHttpError.Conflict('User is already registered')
       })
       .catch((error) => {
         next(error)

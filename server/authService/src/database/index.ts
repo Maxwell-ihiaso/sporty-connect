@@ -1,5 +1,5 @@
-import Store from './redisConn';
-import dbConn from './dbConn';
-import CustomerRepository from './repository/user-repository';
+import Store from './redisConn'
+import dbConn from './dbConn'
+import UserRepository from './repository/auth-repository'
 
-export { Store, dbConn, CustomerRepository };
+export { Store, dbConn, UserRepository }

@@ -15,4 +15,5 @@ export const STRIPE_KEY = process.env.STRIPE_KEY as string
 export const MSG_QUEUE_URL = process.env.MSG_QUEUE_URL as string
 export const EXCHANGE_NAME = process.env.EXCHANGE_NAME as string
 export const APP_SECRET = process.env.APP_SECRET as string
-export const EMAIL_BASE_URL = process.env.EMAIL_BASE_URL as string
+export const FROM_EMAIL = process.env.FROM_EMAIL as string
+export const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD as string

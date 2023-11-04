@@ -1,3 +1,3 @@
-import AuthService from './user-service'
+import AuthService from './auth-service'
 
 export { AuthService }

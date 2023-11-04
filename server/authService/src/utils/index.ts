@@ -2,8 +2,13 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import createError from 'http-errors'
 import { ErrorHandler } from './error-handler'
+import axios from 'axios'
 
-import { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } from '../config'
+import {
+  ACCESS_TOKEN_SECRET,
+  EMAIL_BASE_URL,
+  REFRESH_TOKEN_SECRET
+} from '../config'
 import { Store } from '../database'
 
 // Utility functions
@@ -138,4 +143,25 @@ export const isLoggedIn = async (id: string): Promise<boolean> => {
     console.log(err?.message)
     return false
   }
+}
+
+/**
+ * Publishes a customer event.
+ * @param payload The payload of the event.
+ * @returns A Promise that resolves when the event is published.
+ */
+export async function publishEmailEvent(payload: any): Promise<void> {
+  //   await axios.post("http://customer:8001/app-events/", {
+  //     payload,
+  //   });
+
+  await axios({
+    url: `${EMAIL_BASE_URL}/webhook`,
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json;charset=UTF-8'
+    },
+    data: payload
+  })
 }
