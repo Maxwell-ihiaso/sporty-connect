@@ -1,6 +1,7 @@
-import { AuthModel, EmailOTPModel } from '../models'
+import { AuthModel, EmailOTPModel, PhoneOTPModel } from '../models'
 import { IAuth } from '../models/Auth-model'
 import { IEmailOTP } from '../models/OTP-model'
+import { IPhoneOTP } from '../models/PhoneOtp-model'
 
 interface NewUserProps {
   firstName: string
@@ -46,7 +47,7 @@ class AuthRepository {
     emailOrPhoneNumber: string
   }): Promise<IAuth | null> {
     const user = await AuthModel.findOne({
-      $or: [{ email: emailOrPhoneNumber }, { phone: emailOrPhoneNumber }]
+      $or: [{ email: emailOrPhoneNumber }, { phoneNumber: emailOrPhoneNumber }]
     }).exec()
     return user
   }
@@ -77,6 +78,46 @@ class AuthRepository {
       hasOTP.emailOTP = otp.toString()
       const EmailOTPResult = await hasOTP.save()
       return EmailOTPResult
+    }
+  }
+
+  async FindPhoneOTP({
+    phoneNumber
+  }: {
+    phoneNumber: string
+  }): Promise<IPhoneOTP | null> {
+    const user = await PhoneOTPModel.findOne({ phone: phoneNumber }).exec()
+    return user
+  }
+
+  async FindPhoneOTPByID(id: string): Promise<IPhoneOTP | null> {
+    const user = await PhoneOTPModel.findById(id).exec()
+    return user
+  }
+
+  async AddPhoneOTP({
+    phoneNumber,
+    otp
+  }: {
+    phoneNumber: string
+    otp: number
+  }) {
+    const hasOTP = await this.FindPhoneOTP({ phoneNumber })
+
+    if (!hasOTP) {
+      const phoneNumberOTP = new PhoneOTPModel({
+        phone: phoneNumber,
+        phoneOTP: otp
+      })
+
+      const phoneNumberOTPResult = await phoneNumberOTP.save()
+      return phoneNumberOTPResult
+    }
+
+    if (hasOTP && !hasOTP?.verified) {
+      hasOTP.phoneOTP = otp.toString()
+      const phoneNumberOTPResult = await hasOTP.save()
+      return phoneNumberOTPResult
     }
   }
 }

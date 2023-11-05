@@ -1,5 +1,5 @@
 import AuthModel from './Auth-model'
 import EmailOTPModel from './OTP-model'
+import PhoneOTPModel from './PhoneOtp-model'
 
-EmailOTPModel
-export { AuthModel, EmailOTPModel }
+export { AuthModel, EmailOTPModel, PhoneOTPModel }

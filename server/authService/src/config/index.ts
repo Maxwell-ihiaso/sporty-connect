@@ -16,3 +16,5 @@ export const MSG_QUEUE_URL = process.env.MSG_QUEUE_URL as string
 export const EXCHANGE_NAME = process.env.EXCHANGE_NAME as string
 export const APP_SECRET = process.env.APP_SECRET as string
 export const EMAIL_BASE_URL = process.env.EMAIL_BASE_URL as string
+export const VONAGE_SMS_API_KEY = process.env.VONAGE_SMS_API_KEY as string
+export const VONAGE_SMS_API_SECRET = process.env.VONAGE_SMS_API_SECRET as string

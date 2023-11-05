@@ -76,7 +76,7 @@ export const getEmailTemplate = (event: string) => {
     <p>Dear ${firstName ?? 'User'},</p>
     <p>Your One-Time Password (OTP) for email verification is:</p>
     <div class="otp-code">${otp}</div>
-    <p class="note">Please use this code to verify your identity.</p>
+    <p class="note">Please use this code to verify your identity. OTP i svalid for only one (1) hour.</p>
     <p class="footer">This email is auto-generated. Please do not reply to this email.</p>
   </div>
 </body>
@@ -147,9 +147,9 @@ export const getEmailTemplate = (event: string) => {
     <p>Dear ${firstName ?? 'User'},</p>
     <p>Welcome to Sportz Connect!</p>
     <p>We are number one stop and greet place to get connected to sport lovers around the world. All you need is to stay connected to the platform, have a complete profile, and you are all set.</p>
-    <p>We would use the ionformation you provide to us as well as your preferences to keep you connected and updated.</p>
-    <div class="otp-code">Sporty Connetzdiv>
-    <p class="note">Please reply to this email if you have concerns or need more information about Sporty Connectz.</p>
+    <p>We would use the information you provide to us as well as your preferences to keep you connected and updated.</p>
+    <div class="otp-code">Sporty Connetz<div>
+    <p class="footer">Please reply to this email if you have concerns or need more information about Sporty Connectz.</p>
     <p class="footer">We are 100% data compliant</p>
   </div>
 </body>

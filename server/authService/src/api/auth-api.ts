@@ -68,10 +68,7 @@ export const AuthAPI = (app: Express): void => {
             data.status === 200 && res.cookie(`${otherData.id}`, refreshToken)
 
             return res.status(data.status).json(data)
-          } else
-            throw createHttpError.InternalServerError(
-              'Ops! something happend while signing you up'
-            )
+          } else return res.status(data.status).json(data)
         })
         .catch((error) => {
           next(error)
@@ -116,6 +113,53 @@ export const AuthAPI = (app: Express): void => {
             if (data) {
               return res.status(data?.status).json(data)
             } else throw createHttpError[500]('unable to verify email')
+          })
+          .catch((error) => {
+            next(error)
+          })
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
+
+  app.post(
+    '/validatePhone',
+    (req: Request, res: Response, next: NextFunction) => {
+      const { phoneNumber } = req.body
+
+      try {
+        if (!phoneNumber)
+          throw createHttpError.BadRequest('phoneNumber is required')
+        service
+          .ValidatePhone(phoneNumber)
+          .then((data) => {
+            console.log('DATA FROM PHONE', data)
+
+            return res.status(200).json(data)
+          })
+          .catch((error) => {
+            next(error)
+          })
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
+
+  app.post(
+    '/verifyPhoneOTP',
+    (req: Request, res: Response, next: NextFunction) => {
+      const { userId, otp } = req.body
+      try {
+        if (!userId || !otp)
+          throw createHttpError.BadRequest('userId, and otp is required')
+        service
+          .VerifyPhoneOTP(userId, otp)
+          .then((data) => {
+            if (data) {
+              return res.status(data?.status).json(data)
+            } else throw createHttpError[500]('unable to verify phone number')
           })
           .catch((error) => {
             next(error)

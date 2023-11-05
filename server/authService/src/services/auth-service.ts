@@ -4,9 +4,11 @@ import {
   signAccessToken,
   signRefreshToken
 } from '../utils'
-import SendOtp from 'sendotp'
+
 import AuthRepository from '@/database/repository/auth-repository'
 import { EMAIL_TYPE } from '@/api/auth-api'
+import axios from 'axios'
+import { VONAGE_SMS_API_KEY, VONAGE_SMS_API_SECRET } from '@/config'
 
 interface SignInReturnProps {
   id: string
@@ -22,6 +24,7 @@ export interface UserDataProps {
   phoneNumber: string
   userName: string
 }
+
 // All Business logic will be here
 export default class AuthService {
   private readonly repository
@@ -40,7 +43,11 @@ export default class AuthService {
     const isOTPRequested = await this.repository.FindUserOTP({ email })
 
     if (isOTPRequested?.verified) {
-      return { status: 403, message: 'Email is already verified', data: null }
+      return {
+        status: 403,
+        message: 'Email is already verified',
+        data: { userId: isOTPRequested._id }
+      }
     }
     const OTP = await this.GenerateOTP()
     const isSavedOTP = await this.repository.AddUserOTP({
@@ -61,6 +68,43 @@ export default class AuthService {
 
       return {
         message: 'Check your email for OTP',
+        data: {
+          userId: isSavedOTP._id
+        },
+        status: 200
+      }
+    }
+  }
+  async ValidatePhone(phoneNumber: string) {
+    const isOTPRequested = await this.repository.FindPhoneOTP({ phoneNumber })
+
+    // async SendPhoneOTP({ phoneNumber, to, firstName, otp }, res: Response) {
+
+    if (isOTPRequested?.verified) {
+      return {
+        status: 403,
+        message: 'Phone number is already verified',
+        data: { userId: isOTPRequested._id }
+      }
+    }
+
+    const OTP = await this.GenerateOTP()
+    const isSavedOTP = await this.repository.AddPhoneOTP({
+      phoneNumber,
+      otp: Number(OTP)
+    })
+
+    if (isSavedOTP) {
+      await axios.post(`https://rest.nexmo.com/sms/json`, {
+        from: 'Sporty Connectz',
+        text: 'Your OTP is ' + OTP + '. Do not share it with anyone.',
+        to: phoneNumber,
+        api_key: VONAGE_SMS_API_KEY,
+        api_secret: VONAGE_SMS_API_SECRET
+      })
+
+      return {
+        message: 'Check your phone for OTP',
         data: {
           userId: isSavedOTP._id
         },
@@ -90,6 +134,27 @@ export default class AuthService {
       status: 200
     }
   }
+  async VerifyPhoneOTP(userId: string, otp: number) {
+    const isOTPRequested = await this.repository.FindPhoneOTPByID(userId)
+
+    if (!isOTPRequested) return { status: 404, message: 'Incorrect user ID' }
+    if (isOTPRequested.verified)
+      return { status: 403, message: 'Phone number is already verified' }
+
+    const validOTP = await isOTPRequested.isValidOTP(otp.toString())
+
+    if (!validOTP) return { status: 400, message: 'Incorrect OTP' }
+
+    if (isOTPRequested.expiresAt <= new Date())
+      return { status: 403, message: 'OTP is expired' }
+    isOTPRequested.verified = true
+    await isOTPRequested.save()
+
+    return {
+      message: 'Phone number has been verified',
+      status: 200
+    }
+  }
 
   async SignUp(userData: UserDataProps) {
     const { firstName, lastName, email, password, phoneNumber, userName } =
@@ -99,6 +164,15 @@ export default class AuthService {
 
     if (!isVerifiedEmail || !isVerifiedEmail?.verified)
       return { status: 403, message: 'Email must be verified', data: null }
+
+    const isVerifiedPhone = await this.repository.FindPhoneOTP({ phoneNumber })
+
+    if (!isVerifiedPhone || !isVerifiedPhone?.verified)
+      return {
+        status: 403,
+        message: 'Phone number must be verified',
+        data: null
+      }
 
     const newUser = await this.repository.AddUser({
       firstName,
@@ -111,9 +185,9 @@ export default class AuthService {
 
     if (!newUser)
       return {
-        status: 403,
+        status: 409,
         data: null,
-        message: 'Email or Phone Number has is already registered'
+        message: 'Email or Phone Number is already registered'
       }
 
     publishEmailEvent({
@@ -164,14 +238,6 @@ export default class AuthService {
   async SignOut(userId: string) {
     await revokeRefreshToken(userId)
   }
-
-  // async SendPhoneOTP({ contactNumber, to, firstName, otp }, res: Response) {
-  //   const sendOtp = new SendOtp('AuthKey')
-
-  //   sendOtp.send(contactNumber, senderId, callback) //otp is optional if not sent it'll be generated automatically
-  //   sendOtp.retry(contactNumber, retryVoice, callback)
-  //   sendOtp.verify(contactNumber, otpToVerify, callback)
-  // }
 
   async SubscribeEvents(payload: { event: string; userData: UserDataProps }) {
     const { event, userData } = payload
