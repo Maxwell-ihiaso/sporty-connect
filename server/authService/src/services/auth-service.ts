@@ -1,6 +1,12 @@
-import { publishEmailEvent, revokeRefreshToken, signAccessToken, signRefreshToken } from '../utils'
+import {
+  publishEmailEvent,
+  revokeRefreshToken,
+  signAccessToken,
+  signRefreshToken
+} from '../utils'
 import SendOtp from 'sendotp'
 import AuthRepository from '@/database/repository/auth-repository'
+import { EMAIL_TYPE } from '@/api/auth-api'
 
 interface SignInReturnProps {
   id: string
@@ -24,54 +30,6 @@ export default class AuthService {
     this.repository = new AuthRepository()
   }
 
-  async SignIn(userInputs: {
-    emailOrPhone: string
-    password: string
-  }): Promise<SignInReturnProps | null> {
-    const { emailOrPhone, password } = userInputs
-
-    const existingCustomer = await this.repository.FindUser({
-      emailOrPhoneNumber: emailOrPhone
-    })
-
-    if (existingCustomer) {
-      const validPassword = await existingCustomer.isValidPassword(password)
-
-      if (validPassword) {
-        const accessToken = await signAccessToken(existingCustomer._id)
-        const refreshToken = await signRefreshToken(existingCustomer._id)
-        return {
-          id: existingCustomer._id,
-          accessToken,
-          refreshToken
-        }
-      }
-      return null
-    }
-    return null
-  }
-
-  async SignOut(userId: string) {
-    await revokeRefreshToken(userId)
-  }
-
-  async VerifyEmailOTP(email: string, otp: number) {
-    const isOTPRequested = await this.repository.FindUserOTP({ email })
-
-    if (isOTPRequested) {
-      const validOTP = await isOTPRequested.isValidOTP(otp)
-
-      if (validOTP) {
-        return {
-          message: 'Email has been verified',
-          status: 'success'
-        }
-      }
-      return null
-    }
-    return null
-  }
-
   private async GenerateOTP() {
     // Generate a random 6-digit number
     const otp = Math.floor(100000 + Math.random() * 900000)
@@ -81,18 +39,55 @@ export default class AuthService {
   async ValidateEmail(email: string) {
     const isOTPRequested = await this.repository.FindUserOTP({ email })
 
-    if (isOTPRequested) {
-      return {
-        message: 'Check your email for OTP',
-        status: 'success'
-      }
+    if (isOTPRequested?.verified) {
+      return { status: 403, message: 'Email is already verified', data: null }
     }
     const OTP = await this.GenerateOTP()
-    const isSavedOTP = await this.repository.AddUserOTP({ email, otp: Number(OTP) })
+    const isSavedOTP = await this.repository.AddUserOTP({
+      email,
+      otp: Number(OTP)
+    })
 
     if (isSavedOTP) {
-      publishEmailEvent({})
+      publishEmailEvent({
+        event: EMAIL_TYPE.SEND_EMAIL_OTP,
+        userData: {
+          otp: Number(OTP),
+          emailType: EMAIL_TYPE.SEND_EMAIL_OTP,
+          to: email,
+          firstName: 'User'
+        }
+      })
 
+      return {
+        message: 'Check your email for OTP',
+        data: {
+          userId: isSavedOTP._id
+        },
+        status: 200
+      }
+    }
+  }
+
+  async VerifyEmailOTP(userId: string, otp: number) {
+    const isOTPRequested = await this.repository.FindUserOTPByID(userId)
+
+    if (!isOTPRequested) return { status: 404, message: 'Incorrect user ID' }
+    if (isOTPRequested.verified)
+      return { status: 403, message: 'Email is already verified' }
+
+    const validOTP = await isOTPRequested.isValidOTP(otp.toString())
+
+    if (!validOTP) return { status: 400, message: 'Incorrect OTP' }
+
+    if (isOTPRequested.expiresAt <= new Date())
+      return { status: 403, message: 'OTP is expired' }
+    isOTPRequested.verified = true
+    await isOTPRequested.save()
+
+    return {
+      message: 'Email has been verified',
+      status: 200
     }
   }
 
@@ -100,7 +95,12 @@ export default class AuthService {
     const { firstName, lastName, email, password, phoneNumber, userName } =
       userData
 
-    return this.repository.AddUser({
+    const isVerifiedEmail = await this.repository.FindUserOTP({ email })
+
+    if (!isVerifiedEmail || !isVerifiedEmail?.verified)
+      return { status: 403, message: 'Email must be verified', data: null }
+
+    const newUser = await this.repository.AddUser({
       firstName,
       lastName,
       email,
@@ -108,6 +108,61 @@ export default class AuthService {
       phoneNumber,
       userName
     })
+
+    if (!newUser)
+      return {
+        status: 403,
+        data: null,
+        message: 'Email or Phone Number has is already registered'
+      }
+
+    publishEmailEvent({
+      event: EMAIL_TYPE.SEND_WELCOME_EMAIL,
+      userData: {
+        to: newUser?.email,
+        emailType: EMAIL_TYPE.SEND_WELCOME_EMAIL,
+        firstName: newUser?.firstName
+      }
+    })
+
+    return { messgae: 'New user created', status: 200, data: newUser }
+  }
+
+  async SignIn(userInputs: { emailOrPhone: string; password: string }) {
+    const { emailOrPhone, password } = userInputs
+
+    const existingCustomer = await this.repository.FindUser({
+      emailOrPhoneNumber: emailOrPhone
+    })
+
+    if (!existingCustomer)
+      return { status: 401, message: 'Invalid email or phone', data: null }
+
+    const validPassword = await existingCustomer.isValidPassword(password)
+
+    if (!validPassword)
+      return {
+        status: 401,
+        message: 'Invalid email/phone or password',
+        data: null
+      }
+
+    const accessToken = await signAccessToken(existingCustomer._id)
+    const refreshToken = await signRefreshToken(existingCustomer._id)
+
+    return {
+      status: 200,
+      message: 'Sign in successful',
+      data: {
+        id: existingCustomer._id,
+        accessToken,
+        refreshToken
+      }
+    }
+  }
+
+  async SignOut(userId: string) {
+    await revokeRefreshToken(userId)
   }
 
   // async SendPhoneOTP({ contactNumber, to, firstName, otp }, res: Response) {

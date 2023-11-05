@@ -23,32 +23,38 @@ export const verifyAccessToken = (
   _res: Response,
   next: NextFunction
 ): void => {
-  // Check if the header has an authorization key.
-  if (req.headers.authorization != null) {
-    // Extract token from bearer token format.
-    const bearerToken = req.headers.authorization.split(' ')
-    const token = bearerToken?.[1]
+  try {
+    // Check if the header has an authorization key.
+    if (req.headers.authorization) {
+      // Extract token from bearer token format.
+      const bearerToken = req.headers.authorization.split(' ')
+      const token = bearerToken?.[1]
 
-    // Verify token with JWT library.
-    jwt.verify(token, ACCESS_TOKEN_SECRET, (err, payload) => {
-      if (err) {
-        // If token is invalid, throw unauthorized error with specific message.
-        err.name === 'JsonWebTokenError'
-          ? next(
-              createHttpError.Unauthorized(
-                'Wrong credentials provided. Please log in.'
+      if (!token) throw createHttpError.Unauthorized()
+
+      // Verify token with JWT library.
+      jwt.verify(token, ACCESS_TOKEN_SECRET, (err, payload) => {
+        if (err) {
+          // If token is invalid, throw unauthorized error with specific message.
+          err.name === 'JsonWebTokenError'
+            ? next(
+                createHttpError.Unauthorized(
+                  'Wrong credentials provided. Please log in.'
+                )
               )
-            )
-          : next(createHttpError.Unauthorized('You are logged out.'))
-        return
-      }
+            : next(createHttpError.Unauthorized('You are logged out.'))
+          return
+        }
 
-      // If token is valid, add payload to request object and pass to next middleware.
-      req.user = payload
-      next()
-    })
-  } else {
-    next(createHttpError.Unauthorized())
+        // If token is valid, add payload to request object and pass to next middleware.
+        req.user = payload
+        next()
+      })
+    } else {
+      next(createHttpError.Unauthorized())
+    }
+  } catch (error) {
+    next(error)
   }
 }
 

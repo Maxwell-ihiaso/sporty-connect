@@ -28,11 +28,13 @@ export default class EmailService {
     { emailType, to, firstName }: EmailDataProps,
     res: Response
   ) {
+    const template = getEmailTemplate(emailType)(firstName)
+
     const mailOptions: nodemailer.SendMailOptions = {
       from: FROM_EMAIL,
       to,
-      subject: getEmailTemplate(emailType)(firstName).subject,
-      html: getEmailTemplate(emailType)(firstName).message
+      subject: template.subject,
+      html: template.message
     }
 
     transporter.sendMail(mailOptions, function (error: any, info: any) {
@@ -52,11 +54,13 @@ export default class EmailService {
     { emailType, to, firstName, otp }: EmailDataProps & { otp: number },
     res: Response
   ) {
+    const template = getEmailTemplate(emailType)(firstName, otp)
+
     const mailOptions: nodemailer.SendMailOptions = {
       from: FROM_EMAIL,
       to,
-      subject: getEmailTemplate(emailType)(firstName, otp).subject,
-      html: getEmailTemplate(emailType)(firstName, otp).message
+      subject: template.subject,
+      html: template.message
     }
 
     transporter.sendMail(mailOptions, function (error: any, info: any) {
@@ -78,6 +82,7 @@ export default class EmailService {
     res: Response
   }) {
     const { event, userData, res } = payload
+
 
     const { emailType, firstName, to, from, otp } = userData
 

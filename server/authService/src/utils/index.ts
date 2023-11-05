@@ -150,18 +150,25 @@ export const isLoggedIn = async (id: string): Promise<boolean> => {
  * @param payload The payload of the event.
  * @returns A Promise that resolves when the event is published.
  */
-export async function publishEmailEvent(payload: any): Promise<void> {
-  //   await axios.post("http://customer:8001/app-events/", {
-  //     payload,
-  //   });
+export async function publishEmailEvent(payload: {
+  event: string
+  userData: {
+    otp?: number
+    emailType: string
+    from?: string
+    to: string
+    firstName: string
+  }
+}): Promise<void> {
+  await axios.post(`${EMAIL_BASE_URL}/webhook`, payload)
 
-  await axios({
-    url: `${EMAIL_BASE_URL}/webhook`,
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json;charset=UTF-8'
-    },
-    data: payload
-  })
+  // await axios({
+  //   url: `${EMAIL_BASE_URL}/webhook`,
+  //   method: 'POST',
+  //   headers: {
+  //     Accept: 'application/json',
+  //     'Content-Type': 'application/json;charset=UTF-8'
+  //   },
+  //   data: payload
+  // })
 }

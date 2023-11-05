@@ -8,15 +8,11 @@ import createHttpError from 'http-errors'
 
 import { type CustomRequest, verifyAccessToken } from './middlewares'
 import { AuthService } from '@/services'
-import axios from 'axios'
-import { publishEmailEvent } from '@/utils'
-
 
 export enum EMAIL_TYPE {
   SEND_EMAIL_OTP = 'SEND_EMAIL_OTP',
   SEND_WELCOME_EMAIL = 'SEND_WELCOME_EMAIL'
 }
-
 
 export const AuthAPI = (app: Express): void => {
   const service = new AuthService()
@@ -25,59 +21,110 @@ export const AuthAPI = (app: Express): void => {
     const { email, password, firstName, lastName, phoneNumber, userName } =
       req.body
 
-    if (
-      !email ||
-      !password ||
-      !firstName ||
-      !lastName ||
-      !phoneNumber ||
-      !userName
-    ) {
-      throw createHttpError.BadRequest(
-        'email, password, firstName, lastName, phoneNumber, userName is required'
-      )
+    try {
+      if (
+        !email ||
+        !password ||
+        !firstName ||
+        !lastName ||
+        !phoneNumber ||
+        !userName
+      ) {
+        throw createHttpError.BadRequest(
+          'email, password, firstName, lastName, phoneNumber, userName is required'
+        )
+      }
+
+      service
+        .SignUp({ email, password, firstName, lastName, phoneNumber, userName })
+        .then((data) => {
+          if (data) {
+            return res.status(data.status).json(data)
+          } else
+            throw createHttpError.InternalServerError(
+              'Ops! something happend while creating a new user'
+            )
+        })
+        .catch((error) => {
+          next(error)
+        })
+    } catch (error) {
+      next(error)
     }
-
-    service
-      .SignUp({ email, password, firstName, lastName, phoneNumber, userName })
-      .then((data) => {
-        if (data) {
-          publishEmailEvent({
-            event: EMAIL_TYPE.SEND_EMAIL_OTP,
-            userData: {
-              to: email,
-              emailType: EMAIL_TYPE.SEND_EMAIL_OTP,
-              firstName,
-              otp: 12345
-            }
-          })
-
-          return res.status(200).json(data)
-        } else throw createHttpError.Conflict('User is already registered')
-      })
-      .catch((error) => {
-        next(error)
-      })
   })
 
   app.post('/login', (req: Request, res: Response, next: NextFunction) => {
     const { emailOrPhone, password } = req.body
-    service
-      .SignIn({ emailOrPhone, password })
-      .then((data) => {
-        if (data) {
-          const { refreshToken, ...otherData } = data
-          res.cookie(`${otherData.id}`, refreshToken)
-          return res.status(200).json(otherData)
-        } else
-          throw createHttpError.BadRequest(
-            'Invalid email/phone number or password'
-          )
-      })
-      .catch((error) => {
-        next(error)
-      })
+
+    try {
+      if (!emailOrPhone || !password)
+        throw createHttpError.BadRequest('email/phone and password is required')
+
+      service
+        .SignIn({ emailOrPhone, password })
+        .then((data) => {
+          if (data && data.data) {
+            const { refreshToken, ...otherData } = data.data
+            data.status === 200 && res.cookie(`${otherData.id}`, refreshToken)
+
+            return res.status(data.status).json(data)
+          } else
+            throw createHttpError.InternalServerError(
+              'Ops! something happend while signing you up'
+            )
+        })
+        .catch((error) => {
+          next(error)
+        })
+    } catch (error) {
+      next(error)
+    }
   })
+
+  app.post(
+    '/validateEmail',
+    (req: Request, res: Response, next: NextFunction) => {
+      const { email } = req.body
+      try {
+        if (!email) throw createHttpError.BadRequest('email is required')
+        service
+          .ValidateEmail(email)
+          .then((data) => {
+            if (data) {
+              return res.status(data.status).json(data)
+            } else throw createHttpError[500]('Ops something happened')
+          })
+          .catch((error) => {
+            next(error)
+          })
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
+
+  app.post(
+    '/verifyEmailOTP',
+    (req: Request, res: Response, next: NextFunction) => {
+      const { userId, otp } = req.body
+      try {
+        if (!userId || !otp)
+          throw createHttpError.BadRequest('userId, and otp is required')
+        service
+          .VerifyEmailOTP(userId, otp)
+          .then((data) => {
+            if (data) {
+              return res.status(data?.status).json(data)
+            } else throw createHttpError[500]('unable to verify email')
+          })
+          .catch((error) => {
+            next(error)
+          })
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
 
   // TODO: create a logout service. it sould also delete the refresh token from the store using revokeRefreshToken
   app.post(

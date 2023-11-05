@@ -1,6 +1,8 @@
 import { EMAIL_TYPE } from '@/services/email-services'
 
 export const getEmailTemplate = (event: string) => {
+  if (!event) throw new Error(`Invalid event received: ${event}`)
+
   const emailTemplate: {
     [key: string]: (
       firstName?: string,
@@ -73,7 +75,7 @@ export const getEmailTemplate = (event: string) => {
     <h1>OTP Verification</h1>
     <p>Dear ${firstName ?? 'User'},</p>
     <p>Your One-Time Password (OTP) for email verification is:</p>
-    <div class="otp-code">${otp ?? 1234}</div>
+    <div class="otp-code">${otp}</div>
     <p class="note">Please use this code to verify your identity.</p>
     <p class="footer">This email is auto-generated. Please do not reply to this email.</p>
   </div>
@@ -81,7 +83,7 @@ export const getEmailTemplate = (event: string) => {
 </html>
 `
     }),
-    [EMAIL_TYPE.SEND_WELCOME_EMAIL]: (firstName?: string, otp?: number) => ({
+    [EMAIL_TYPE.SEND_WELCOME_EMAIL]: (firstName?: string) => ({
       subject: 'Welcome to Sporty Connetz',
       message: `<!DOCTYPE html>
 <html lang="en">
@@ -156,5 +158,10 @@ export const getEmailTemplate = (event: string) => {
     })
   }
 
-  return emailTemplate[event]
+  const template = emailTemplate[event]
+  if (!template) {
+    throw new Error(`Invalid event: ${event}`)
+  }
+
+  return (firstName?: string, otp?: number) => template(firstName, otp)
 }

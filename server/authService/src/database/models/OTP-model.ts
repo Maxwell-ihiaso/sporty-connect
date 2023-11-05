@@ -8,6 +8,7 @@ export interface IEmailOTP extends Document {
   verified: boolean
   createdAt: Date
   expiresAt: Date
+  isValidOTP: (emailOTP: string) => Promise<boolean>
 }
 
 const EmailOTPSchema = new Schema<IEmailOTP>({

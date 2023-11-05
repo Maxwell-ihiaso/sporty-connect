@@ -20,7 +20,7 @@ const StartServer = async (): Promise<void> => {
   app
     .listen(PORT, () => {
       console.log(`${ENVIRONMENT} environment started`)
-      console.log(`Custoemr service is listening to port ${PORT}`)
+      console.log(`Email service is listening to port ${PORT}`)
     })
     .on('error', async (err) => {
       await logger.logError(err)

@@ -1,6 +1,6 @@
-import { AuthModel } from '../models'
+import { AuthModel, EmailOTPModel } from '../models'
 import { IAuth } from '../models/Auth-model'
-import EmailOTPModel, { IEmailOTP } from '../models/otp-model'
+import { IEmailOTP } from '../models/OTP-model'
 
 interface NewUserProps {
   firstName: string
@@ -55,14 +55,12 @@ class AuthRepository {
     const user = await EmailOTPModel.findOne({ email }).exec()
     return user
   }
+  async FindUserOTPByID(id: string): Promise<IEmailOTP | null> {
+    const user = await EmailOTPModel.findById(id).exec()
+    return user
+  }
 
-  async AddUserOTP({
-    email,
-    otp
-  }: {
-    email: string
-    otp: number
-  }): Promise<IEmailOTP | null> {
+  async AddUserOTP({ email, otp }: { email: string; otp: number }) {
     const hasOTP = await this.FindUserOTP({ email })
 
     if (!hasOTP) {
@@ -74,7 +72,12 @@ class AuthRepository {
       const EmailOTPResult = await EmailOTP.save()
       return EmailOTPResult
     }
-    return null
+
+    if (hasOTP && !hasOTP?.verified) {
+      hasOTP.emailOTP = otp.toString()
+      const EmailOTPResult = await hasOTP.save()
+      return EmailOTPResult
+    }
   }
 }
 
