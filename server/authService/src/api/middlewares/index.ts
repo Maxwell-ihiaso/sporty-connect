@@ -57,6 +57,53 @@ export const verifyAccessToken = (
     next(error)
   }
 }
+/**
+ * Verifies the access token in the request query.
+ * If the token is valid, adds the payload to the request object and passes to the next middleware.
+ * If the token is invalid, throws an unauthorized error.
+ *
+ * @param req - Express request object.
+ * @param _res - Express response object.
+ * @param next - Express next function.
+ */
+export const verifyPasswordResetToken = (
+  req: CustomRequest,
+  _res: Response,
+  next: NextFunction
+): void => {
+  try {
+    // Check if the request query has an authorization key.
+
+    const token = req.query.token as string
+
+    if (!token)
+      throw createHttpError.Unauthorized(
+        'Wrong credentials provided. Use reset link from your email or generate a new reset password link'
+      )
+
+    // Verify token with JWT library.
+    jwt.verify(token, ACCESS_TOKEN_SECRET, (err, payload) => {
+      if (err) {
+        console.log('INSIDE HERE')
+        // If token is invalid, throw unauthorized error with specific message.
+        err.name === 'JsonWebTokenError'
+          ? next(
+              createHttpError.Unauthorized(
+                'Wrong credentials provided. Use reset link from your email or generate a new reset password link'
+              )
+            )
+          : next(createHttpError.Unauthorized('Password reset link expired.'))
+        return
+      }
+
+      // If token is valid, add payload to request object and pass to next middleware.
+      req.user = payload
+      next()
+    })
+  } catch (error) {
+    next(error)
+  }
+}
 
 /**
  * Verifies a refresh token.

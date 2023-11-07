@@ -52,6 +52,45 @@ class AuthRepository {
     return user
   }
 
+  async FindUserByID(id: string): Promise<IAuth | null> {
+    const user = await AuthModel.findById(id).exec()
+    return user
+  }
+  async UpdateUserPassword(
+    id: string,
+    password: string
+  ): Promise<IAuth | null> {
+    const user = await this.FindUserByID(id)
+    if (user) {
+      user.password = password
+      await user.save()
+      return user
+    }
+    return user
+  }
+  async UpdateUserEmail(id: string, email: string): Promise<IAuth | null> {
+    const user = await this.FindUserByID(id)
+    if (user) {
+      user.email = email
+      await user.save()
+      return user
+    }
+    return user
+  }
+
+  async UpdateUserUsername(
+    id: string,
+    userName: string
+  ): Promise<IAuth | null> {
+    const user = await this.FindUserByID(id)
+    if (user) {
+      user.userName = userName
+      await user.save()
+      return user
+    }
+    return user
+  }
+
   async FindUserOTP({ email }: { email: string }): Promise<IEmailOTP | null> {
     const user = await EmailOTPModel.findOne({ email }).exec()
     return user

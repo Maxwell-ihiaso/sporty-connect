@@ -6,12 +6,18 @@ import {
 } from 'express'
 import createHttpError from 'http-errors'
 
-import { type CustomRequest, verifyAccessToken } from './middlewares'
+import {
+  type CustomRequest,
+  verifyAccessToken,
+  verifyPasswordResetToken
+} from './middlewares'
 import { AuthService } from '@/services'
 
 export enum EMAIL_TYPE {
   SEND_EMAIL_OTP = 'SEND_EMAIL_OTP',
-  SEND_WELCOME_EMAIL = 'SEND_WELCOME_EMAIL'
+  SEND_WELCOME_EMAIL = 'SEND_WELCOME_EMAIL',
+  SEND_PASSWORD_RESET_LINK = 'SEND_PASSWORD_RESET_LINK',
+  SEND_PASSWORD_UPDATE_SUCCESS = 'SEND_PASSWORD_UPDATE_SUCCESS'
 }
 
 export const AuthAPI = (app: Express): void => {
@@ -186,6 +192,102 @@ export const AuthAPI = (app: Express): void => {
         .catch((error) => {
           next(error)
         })
+    }
+  )
+  app.post(
+    '/reset-password',
+    (req: CustomRequest, res: Response, next: NextFunction) => {
+      const { email } = req.body
+      try {
+        if (!email) throw createHttpError.BadRequest('email is required')
+
+        service
+          .sendPasswordResetLink(email)
+          .then((data) => {
+            return res.status(data?.status).json(data)
+          })
+          .catch((error) => {
+            next(error)
+          })
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
+  app.patch(
+    '/update-password',
+    verifyPasswordResetToken,
+    (req: CustomRequest, res: Response, next: NextFunction) => {
+      const { id } = req.user
+      const { newPassword } = req.body
+
+      try {
+        if (!id)
+          throw createHttpError[403](
+            'Invalid credentials. Use password reset link sent to your email'
+          )
+        if (!newPassword)
+          throw createHttpError.BadRequest('newPassword is required')
+
+        service
+          .updatePassword(id, newPassword)
+          .then((data) => {
+            return res.status(data.status).json(data)
+          })
+          .catch((error) => {
+            next(error)
+          })
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
+  app.patch(
+    '/update-email',
+    verifyAccessToken,
+    (req: CustomRequest, res: Response, next: NextFunction) => {
+      const { id } = req.user
+      const { email } = req.body
+
+      try {
+        if (!id) throw createHttpError[403]('Invalid credentials.')
+        if (!email) throw createHttpError.BadRequest('email is required')
+
+        service
+          .updateEmail(id, email)
+          .then((data) => {
+            return res.status(data.status).json(data)
+          })
+          .catch((error) => {
+            next(error)
+          })
+      } catch (error) {
+        next(error)
+      }
+    }
+  )
+  app.patch(
+    '/update-username',
+    verifyAccessToken,
+    (req: CustomRequest, res: Response, next: NextFunction) => {
+      const { id } = req.user
+      const { userName } = req.body
+
+      try {
+        if (!id) throw createHttpError[403]('Invalid credentials.')
+        if (!userName) throw createHttpError.BadRequest('userName is required')
+
+        service
+          .updateUsername(id, userName)
+          .then((data) => {
+            return res.status(data.status).json(data)
+          })
+          .catch((error) => {
+            next(error)
+          })
+      } catch (error) {
+        next(error)
+      }
     }
   )
 

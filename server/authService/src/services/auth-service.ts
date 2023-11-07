@@ -239,6 +239,102 @@ export default class AuthService {
     await revokeRefreshToken(userId)
   }
 
+  async sendPasswordResetLink(email: string) {
+    const user = await this.repository.FindUser({ emailOrPhoneNumber: email })
+    if (!user)
+      return {
+        status: 200,
+        message:
+          'A password reset link has been sent to the email if registered on Sporty Connetz. Please check your inbox.'
+      }
+
+    const passwordResetToken = await signAccessToken(user._id)
+
+    publishEmailEvent({
+      event: EMAIL_TYPE.SEND_PASSWORD_RESET_LINK,
+      userData: {
+        to: user?.email,
+        emailType: EMAIL_TYPE.SEND_PASSWORD_RESET_LINK,
+        firstName: user?.firstName,
+        passwordResetToken: passwordResetToken
+      }
+    })
+
+    return {
+      status: 200,
+      message:
+        'password reset link has been sent to the email if registered on Sporty Connetz. Please check your inbox.',
+      data: {
+        resetPasswordToken: passwordResetToken
+      }
+    }
+  }
+  async updatePassword(userId: string, newPassword: string) {
+    const user = await this.repository.FindUserByID(userId)
+
+    if (!user)
+      return {
+        status: 404,
+        message: 'You are not a registered user. Please sign up to continue.'
+      }
+
+    await this.repository.UpdateUserPassword(userId, newPassword)
+
+    publishEmailEvent({
+      event: EMAIL_TYPE.SEND_PASSWORD_UPDATE_SUCCESS,
+      userData: {
+        to: user?.email,
+        emailType: EMAIL_TYPE.SEND_PASSWORD_UPDATE_SUCCESS,
+        firstName: user?.firstName
+      }
+    })
+
+    return {
+      status: 200,
+      message: 'password update successful. Log in to continue.',
+      data: null
+    }
+  }
+  async updateEmail(userId: string, email: string) {
+    const user = await this.repository.FindUserByID(userId)
+
+    if (!user)
+      return {
+        status: 401,
+        message: 'You are not a registered user. Please sign up to continue.'
+      }
+
+    await this.repository.UpdateUserEmail(userId, email)
+
+    //SEND EMAIL NOTIFICATION TO OLD EMAIL AND TO NEW EMAIL
+
+    return {
+      status: 200,
+      message: 'Email update successful. Log in to continue.',
+      data: null
+    }
+  }
+
+  async updateUsername(userId: string, userName: string) {
+    const user = await this.repository.FindUserByID(userId)
+
+    if (!user)
+      return {
+        status: 401,
+        message: 'You are not a registered user. Please sign up to continue.'
+      }
+
+    await this.repository.UpdateUserUsername(userId, userName)
+
+    //SEND EMAIL NOTIFICATION TO  EMAIL
+
+    return {
+      status: 200,
+      message: 'Username update successful. Log in to continue.',
+      data: null
+    }
+  }
+
   async SubscribeEvents(payload: { event: string; userData: UserDataProps }) {
     const { event, userData } = payload
 

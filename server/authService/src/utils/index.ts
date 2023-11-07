@@ -36,7 +36,6 @@ export const ValidatePassword = async (
 /**
  * Generates a JWT access token for a given user ID and roles array
  * @param userId - The ID of the user for whom the token is being generated
- * @param roles - An array of numbers representing the user's roles
  * @returns A Promise that resolves to an access token string
  */
 export const signAccessToken = async (userId: string): Promise<string> => {
@@ -53,7 +52,7 @@ export const signAccessToken = async (userId: string): Promise<string> => {
 
     // Sign the token with the payload, secret, and options
     jwt.sign(payload, ACCESS_TOKEN_SECRET, options, (err, token) => {
-      if (err != null) {
+      if (err) {
         // If there is an error, reject with an internal server error
         reject(createError.InternalServerError('Unable to grant secure access'))
         return
@@ -67,7 +66,6 @@ export const signAccessToken = async (userId: string): Promise<string> => {
 /**
  * Generates a signed refresh token for a user and stores it in a key-value store.
  * @param userId - The ID of the user for whom the token is being generated.
- * @param roles - The roles of the user.
  * @returns The result of storing the generated token.
  */
 export const signRefreshToken = async (userId: string): Promise<string> => {
@@ -158,6 +156,7 @@ export async function publishEmailEvent(payload: {
     from?: string
     to: string
     firstName: string
+    passwordResetToken?: string
   }
 }): Promise<void> {
   await axios.post(`${EMAIL_BASE_URL}/webhook`, payload)
